@@ -151,6 +151,7 @@ export class MemStorage implements IStorage {
           }
         ]
       }),
+      tags: ["python", "programming", "libraries"],
       folderId: 1
     });
   }
@@ -208,7 +209,8 @@ export class MemStorage implements IStorage {
     return Array.from(this.notes.values())
       .filter(note => 
         note.title.toLowerCase().includes(lowerQuery) || 
-        note.content.toLowerCase().includes(lowerQuery)
+        (note.content && note.content.toLowerCase().includes(lowerQuery)) || 
+        (note.tags && note.tags.some(tag => tag.toLowerCase().includes(lowerQuery)))
       )
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
