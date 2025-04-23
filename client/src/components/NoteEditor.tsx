@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Note } from "@shared/schema";
 import { EditorProvider } from "@/hooks/useEditor";
 import { EditorContent } from "@tiptap/react";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Check, AlertCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { debounce } from "@/lib/utils";
+import { EditorContextMenu } from "@/components/editor/EditorContextMenu";
 
 interface NoteEditorProps {
   note: Note;
@@ -15,10 +16,17 @@ interface NoteEditorProps {
   isSaving: boolean;
 }
 
+interface ContextMenuPosition {
+  x: number;
+  y: number;
+}
+
 function NoteEditorContent({ note, onSave, isSaving }: NoteEditorProps) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
+  const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   
   // Initialize editor with content from note
   const editor = useTipTapEditor({
@@ -76,6 +84,35 @@ function NoteEditorContent({ note, onSave, isSaving }: NoteEditorProps) {
     }
   }, [isSaving]);
   
+  // Handle context menu (right-click)
+  const handleContextMenu = useCallback((event: MouseEvent) => {
+    if (editorRef.current && editorRef.current.contains(event.target as Node)) {
+      event.preventDefault();
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+      });
+    }
+  }, []);
+
+  // Close context menu
+  const closeContextMenu = () => setContextMenu(null);
+
+  // Set up context menu event listener
+  useEffect(() => {
+    const currentEditorRef = editorRef.current;
+    
+    if (currentEditorRef) {
+      currentEditorRef.addEventListener('contextmenu', handleContextMenu);
+    }
+    
+    return () => {
+      if (currentEditorRef) {
+        currentEditorRef.removeEventListener('contextmenu', handleContextMenu);
+      }
+    };
+  }, [handleContextMenu]);
+  
   const formatLastEdited = (date: Date) => {
     try {
       return `Last edited: ${new Date(date).toLocaleDateString()} at ${new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
@@ -128,9 +165,21 @@ function NoteEditorContent({ note, onSave, isSaving }: NoteEditorProps) {
       </div>
       
       {/* Editor content */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div 
+        className="flex-1 overflow-y-auto px-6 py-4" 
+        ref={editorRef}
+      >
         <EditorContent editor={editor} className="tiptap min-h-[300px]" />
       </div>
+      
+      {/* Context Menu */}
+      {contextMenu && (
+        <EditorContextMenu 
+          x={contextMenu.x} 
+          y={contextMenu.y} 
+          onClose={closeContextMenu} 
+        />
+      )}
     </main>
   );
 }

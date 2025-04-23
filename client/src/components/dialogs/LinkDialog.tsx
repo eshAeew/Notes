@@ -37,10 +37,12 @@ export function LinkDialog({
     }
   }, [isOpen, initialUrl, initialText]);
 
+  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (url.trim()) {
-      onConfirm(url, text);
+      onConfirm(url, text.trim() || undefined);
       onClose();
     }
   };
@@ -52,7 +54,7 @@ export function LinkDialog({
           <DialogHeader>
             <DialogTitle>Insert Link</DialogTitle>
             <DialogDescription>
-              Add a URL to create a link in your document.
+              Enter the URL and optional text for your link.
             </DialogDescription>
           </DialogHeader>
           
@@ -69,7 +71,6 @@ export function LinkDialog({
                 onChange={(e) => setUrl(e.target.value)}
                 className="col-span-3"
                 autoFocus
-                required
               />
             </div>
             
@@ -80,7 +81,7 @@ export function LinkDialog({
               <Input
                 id="link-text"
                 type="text"
-                placeholder="Link text (optional)"
+                placeholder={text ? "" : "Same as URL if empty"}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 className="col-span-3"
@@ -92,7 +93,9 @@ export function LinkDialog({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit">Insert Link</Button>
+            <Button type="submit" disabled={!url.trim()}>
+              Insert Link
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
