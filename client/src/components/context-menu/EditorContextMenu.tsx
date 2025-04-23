@@ -1,6 +1,8 @@
 import React from "react";
 import { ContextMenuBase, ContextMenuSectionDefinition } from "./ContextMenuBase";
 import { useEditor } from "@/hooks/useEditor";
+import { useTheme } from "@/hooks/useTheme";
+import { addToDictionary } from "@/lib/utils/spell-checker";
 import {
   Bold,
   Italic,
@@ -31,9 +33,11 @@ import {
   FileSymlink,
   PanelLeft,
   Download,
+  BookMarked,
 } from "lucide-react";
 import { LinkDialog } from "@/components/dialogs/LinkDialog";
 import { ImageUploadDialog } from "@/components/dialogs/ImageUploadDialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface EditorContextMenuProps {
   x: number;
@@ -55,6 +59,8 @@ export const EditorContextMenu: React.FC<EditorContextMenuProps> = ({
   contextType = 'text'
 }) => {
   const { editor } = useEditor();
+  const { theme } = useTheme();
+  const { toast } = useToast();
   const [showLinkDialog, setShowLinkDialog] = React.useState(false);
   const [showImageDialog, setShowImageDialog] = React.useState(false);
   const [selectedText, setSelectedText] = React.useState("");
@@ -109,6 +115,17 @@ export const EditorContextMenu: React.FC<EditorContextMenuProps> = ({
     editor.chain().focus().deleteRange({ from, to }).run();
     editor.chain().focus().insertContent(suggestion).run();
   };
+  
+  // Handle adding word to dictionary
+  const handleAddToDictionary = () => {
+    if (targetText) {
+      addToDictionary(targetText);
+      toast({
+        title: "Word added to dictionary",
+        description: `"${targetText}" has been added to your custom dictionary.`,
+      });
+    }
+  };
 
   // Sections vary based on the context
   const getSections = (): ContextMenuSectionDefinition[] => {
@@ -118,6 +135,7 @@ export const EditorContextMenu: React.FC<EditorContextMenuProps> = ({
     if (isSpellingError && spellingSuggestions.length > 0) {
       sections.push({
         id: 'spelling',
+        title: 'Spelling Suggestions',
         items: [
           ...spellingSuggestions.slice(0, 4).map((suggestion, index) => ({
             id: `spelling-${index}`,
@@ -128,9 +146,9 @@ export const EditorContextMenu: React.FC<EditorContextMenuProps> = ({
           {
             id: 'add-to-dictionary',
             label: 'Add to dictionary',
-            icon: <Plus size={16} />,
-            onClick: () => {}, // This would be implemented with a spell checker
-            showInContexts: ['text']
+            icon: <BookMarked size={16} />,
+            onClick: handleAddToDictionary,
+            showInContexts: ['text', 'noteBody', 'header']
           },
           { id: 'spelling-divider', divider: true }
         ]
@@ -480,6 +498,7 @@ export const EditorContextMenu: React.FC<EditorContextMenuProps> = ({
         onClose={onClose}
         sections={getSections()}
         activeContext={contextType}
+        variant="editor"
       />
       
       {/* Dialogs */}

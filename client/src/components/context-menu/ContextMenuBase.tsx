@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
+import { useTheme } from "@/hooks/useTheme";
 
 export type ContextMenuItem = 
   | {
@@ -33,6 +34,7 @@ interface ContextMenuProps {
   onClose: () => void;
   sections: ContextMenuSectionDefinition[];
   activeContext?: string;
+  variant?: 'default' | 'editor' | 'folder' | 'note' | 'toolbar';
 }
 
 export const ContextMenuBase: React.FC<ContextMenuProps> = ({
@@ -40,10 +42,12 @@ export const ContextMenuBase: React.FC<ContextMenuProps> = ({
   y,
   onClose,
   sections,
-  activeContext = 'default'
+  activeContext = 'default',
+  variant = 'default'
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+  const { theme } = useTheme();
   
   // Close when clicked outside
   useEffect(() => {
@@ -54,11 +58,19 @@ export const ContextMenuBase: React.FC<ContextMenuProps> = ({
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("contextmenu", handleClickOutside);
+    
+    // Handle Escape key
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    
+    document.addEventListener("keydown", handleEscape);
     
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("contextmenu", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
     };
   }, [onClose]);
   
@@ -71,8 +83,8 @@ export const ContextMenuBase: React.FC<ContextMenuProps> = ({
   const adjustedPosition = () => {
     if (!menuRef.current) return { x, y };
     
-    const menuWidth = menuRef.current.offsetWidth;
-    const menuHeight = menuRef.current.offsetHeight;
+    const menuWidth = menuRef.current.offsetWidth || 220; // Default width if not yet rendered
+    const menuHeight = menuRef.current.offsetHeight || 200; // Default height
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     
@@ -80,14 +92,14 @@ export const ContextMenuBase: React.FC<ContextMenuProps> = ({
     let adjustedY = y;
     
     if (x + menuWidth > viewportWidth) {
-      adjustedX = viewportWidth - menuWidth - 10;
+      adjustedX = viewportWidth - menuWidth - 5;
     }
     
     if (y + menuHeight > viewportHeight) {
-      adjustedY = viewportHeight - menuHeight - 10;
+      adjustedY = viewportHeight - menuHeight - 5;
     }
     
-    return { x: adjustedX, y: adjustedY };
+    return { x: Math.max(5, adjustedX), y: Math.max(5, adjustedY) };
   };
 
   const { x: adjustedX, y: adjustedY } = adjustedPosition();
@@ -103,11 +115,12 @@ export const ContextMenuBase: React.FC<ContextMenuProps> = ({
   return (
     <div
       ref={menuRef}
-      className="absolute context-menu"
+      className={`fixed z-50 context-menu context-menu-${variant} context-menu-${theme}`}
       style={{
         left: `${adjustedX}px`,
         top: `${adjustedY}px`,
       }}
+      onContextMenu={(e) => e.preventDefault()}
     >
       {sections.map((section, sectionIndex) => {
         const filteredItems = getContextFilteredItems(section.items);
@@ -137,7 +150,9 @@ export const ContextMenuBase: React.FC<ContextMenuProps> = ({
                       } ${
                         'className' in item ? item.className || '' : ''
                       }`}
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         if ('onClick' in item && !('submenu' in item && item.submenu) && item.onClick && !item.disabled) {
                           item.onClick();
                           onClose();
@@ -161,7 +176,7 @@ export const ContextMenuBase: React.FC<ContextMenuProps> = ({
 
                     {/* Submenu */}
                     {'submenu' in item && item.submenu && activeSubmenu === item.id && (
-                      <div className="context-submenu">
+                      <div className={`context-submenu context-submenu-${theme}`}>
                         <div className="py-1">
                           {item.submenu.map((subItem) => (
                             'divider' in subItem && subItem.divider ? (
@@ -176,7 +191,9 @@ export const ContextMenuBase: React.FC<ContextMenuProps> = ({
                                 } ${
                                   'className' in subItem ? subItem.className || '' : ''
                                 }`}
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   if ('onClick' in subItem && subItem.onClick && !('disabled' in subItem && subItem.disabled)) {
                                     subItem.onClick();
                                     onClose();

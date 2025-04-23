@@ -189,12 +189,60 @@
     min-width: 220px;
   }
 
+  /* Default context menu styling */
+  .context-menu-default {
+    @apply bg-background border border-border rounded-md shadow-lg;
+  }
+
+  /* Editor specific context menu */
+  .context-menu-editor {
+    @apply bg-background border border-border rounded-md shadow-md;
+  }
+
+  /* Folder specific context menu */
+  .context-menu-folder {
+    @apply bg-background border border-border rounded-md shadow-md;
+  }
+
+  /* Note specific context menu */
+  .context-menu-note {
+    @apply bg-background border border-border rounded-md shadow-md;
+  }
+
+  /* Toolbar specific context menu */
+  .context-menu-toolbar {
+    @apply bg-background border border-border rounded-md shadow-md;
+  }
+
+  /* Dark theme variants */
+  .context-menu-dark {
+    @apply bg-zinc-900 border-zinc-700 text-zinc-100;
+  }
+
+  .context-submenu-dark {
+    @apply bg-zinc-900 border-zinc-700;
+  }
+
+  /* Light theme variants */
+  .context-menu-light {
+    @apply bg-white border-gray-200 text-gray-800;
+  }
+  
+  .context-submenu-light {
+    @apply bg-white border-gray-200;
+  }
+
   .context-menu-item {
     @apply flex items-center w-full px-3 py-2 text-sm text-left transition-colors cursor-pointer;
   }
 
-  .context-menu-item:hover:not(:disabled) {
-    @apply bg-secondary/60;
+  /* Theme-specific hover states */
+  .context-menu-dark .context-menu-item:hover:not(:disabled) {
+    @apply bg-zinc-800;
+  }
+
+  .context-menu-light .context-menu-item:hover:not(:disabled) {
+    @apply bg-gray-100;
   }
 
   .context-menu-item:disabled {
@@ -210,7 +258,16 @@
   }
 
   .context-menu-divider {
-    @apply h-px bg-border my-1;
+    @apply h-px my-1;
+  }
+  
+  /* Theme-specific dividers */
+  .context-menu-dark .context-menu-divider {
+    @apply bg-zinc-700;
+  }
+  
+  .context-menu-light .context-menu-divider {
+    @apply bg-gray-200;
   }
 
   .context-menu-section {
@@ -218,18 +275,38 @@
   }
 
   .context-menu-section-title {
-    @apply px-3 py-1.5 text-xs text-muted-foreground font-semibold;
+    @apply px-3 py-1.5 text-xs font-semibold;
+  }
+  
+  /* Theme-specific section titles */
+  .context-menu-dark .context-menu-section-title {
+    @apply text-zinc-400;
+  }
+  
+  .context-menu-light .context-menu-section-title {
+    @apply text-gray-500;
   }
 
   .context-submenu {
-    @apply absolute left-full top-0 bg-background border border-border rounded-md shadow-lg overflow-hidden z-50;
+    @apply absolute left-full top-0 border rounded-md shadow-lg overflow-hidden z-50;
     animation: contextMenuFadeIn 0.1s ease-out;
     min-width: 180px;
     margin-left: 2px;
   }
 
+  /* Spelling suggestions styling */
   .context-menu-spell-suggestion {
     @apply font-medium;
+  }
+  
+  /* Dark theme spelling suggestions */
+  .context-menu-dark .context-menu-spell-suggestion {
+    @apply text-blue-400;
+  }
+  
+  /* Light theme spelling suggestions */
+  .context-menu-light .context-menu-spell-suggestion {
+    @apply text-blue-600;
   }
 
   @keyframes contextMenuFadeIn {
