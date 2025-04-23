@@ -14,6 +14,7 @@ export const notes = pgTable("notes", {
   title: text("title").notNull(),
   content: text("content").default(""),
   folderId: integer("folder_id").notNull(),
+  tags: text("tags").array(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -28,6 +29,7 @@ export const insertNoteSchema = createInsertSchema(notes).pick({
   title: true,
   content: true,
   folderId: true,
+  tags: true,
 });
 
 export type InsertFolder = z.infer<typeof insertFolderSchema>;

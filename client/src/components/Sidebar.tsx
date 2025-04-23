@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Folder, Note } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   FolderIcon,
@@ -20,10 +21,13 @@ import {
   PlusIcon,
   DownloadIcon,
   Trash2,
+  FilterIcon,
+  Tag,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import useFolders from "@/hooks/useFolders";
 import { useToast } from "@/hooks/use-toast";
+import FilterOptions, { DateFilter, SortOption } from "@/components/FilterOptions";
 
 interface SidebarProps {
   folders: Folder[];
@@ -40,6 +44,9 @@ interface SidebarProps {
   searchQuery: string;
   onDeleteNote: (noteId: number) => void;
 }
+
+// Helper to handle tags in notes
+type NoteWithTags = Note;
 
 export default function Sidebar({
   folders,
@@ -60,9 +67,109 @@ export default function Sidebar({
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
   const [showDeleteNoteDialog, setShowDeleteNoteDialog] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<number | null>(null);
+  const [filteredNotes, setFilteredNotes] = useState<Note[]>(notes);
+  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
+  const [activeFilters, setActiveFilters] = useState({
+    dateFilter: 'any' as DateFilter,
+    tags: [] as string[],
+    customStartDate: undefined as Date | undefined,
+    customEndDate: undefined as Date | undefined
+  });
   
   const { createFolder } = useFolders();
   const { toast } = useToast();
+  
+  // Apply filters to notes
+  const applyFilters = (notesToFilter: Note[]): Note[] => {
+    let result = [...notesToFilter];
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const lastWeek = new Date(today);
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    const lastMonth = new Date(today);
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    
+    // Apply date filter
+    if (activeFilters.dateFilter !== 'any') {
+      result = result.filter(note => {
+        const noteDate = new Date(note.updatedAt);
+        const noteDay = new Date(noteDate.getFullYear(), noteDate.getMonth(), noteDate.getDate());
+        
+        switch (activeFilters.dateFilter) {
+          case 'today':
+            return noteDay.getTime() === today.getTime();
+          case 'yesterday':
+            return noteDay.getTime() === yesterday.getTime();
+          case 'last-week':
+            return noteDay >= lastWeek;
+          case 'last-month':
+            return noteDay >= lastMonth;
+          case 'custom':
+            if (activeFilters.customStartDate) {
+              const startDateMatch = noteDate >= activeFilters.customStartDate;
+              if (activeFilters.customEndDate) {
+                return startDateMatch && noteDate <= activeFilters.customEndDate;
+              }
+              return startDateMatch;
+            }
+            return true;
+          default:
+            return true;
+        }
+      });
+    }
+    
+    // Apply tag filter
+    if (activeFilters.tags.length > 0) {
+      result = result.filter(note => {
+        const noteWithTags = note as NoteWithTags;
+        return noteWithTags.tags && activeFilters.tags.every(tag => 
+          noteWithTags.tags?.includes(tag)
+        );
+      });
+    }
+    
+    // Apply sorting
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'title-asc':
+          return (a.title || '').localeCompare(b.title || '');
+        case 'title-desc':
+          return (b.title || '').localeCompare(a.title || '');
+        case 'date-asc':
+          return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+        case 'date-desc':
+        default:
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      }
+    });
+    
+    return result;
+  };
+  
+  // Update filtered notes when notes change or filters are applied
+  useEffect(() => {
+    setFilteredNotes(applyFilters(notes));
+  }, [notes, sortBy, activeFilters]);
+  
+  // Handle filter changes
+  const handleFilterChange = (filters: {
+    sortBy: SortOption;
+    dateFilter: DateFilter;
+    tags: string[];
+    customStartDate?: Date;
+    customEndDate?: Date;
+  }) => {
+    setSortBy(filters.sortBy);
+    setActiveFilters({
+      dateFilter: filters.dateFilter,
+      tags: filters.tags,
+      customStartDate: filters.customStartDate,
+      customEndDate: filters.customEndDate
+    });
+  };
   
   if (!isOpen) {
     return null;
@@ -155,6 +262,17 @@ export default function Sidebar({
     }
   };
   
+  // Get notes to display based on current filters and search status
+  const getNotesToDisplay = () => {
+    if (isSearching) {
+      return filteredNotes;
+    } else {
+      return filteredNotes.filter(note => note.folderId === selectedFolderId);
+    }
+  };
+  
+  const notesToDisplay = getNotesToDisplay();
+  
   return (
     <aside className="w-64 border-r border-border flex-shrink-0 flex flex-col h-full overflow-hidden md:relative">
       {/* Folders section */}
@@ -203,17 +321,22 @@ export default function Sidebar({
         )}
       </div>
       
+      {/* Filter Controls */}
+      <div className="flex items-center justify-between px-2 py-1 border-t border-b border-border">
+        <h2 className="text-xs font-semibold uppercase text-muted-foreground px-2">
+          {isSearching ? 
+            `Search${searchQuery ? `: "${searchQuery}"` : ""}` : 
+            folders.find(f => f.id === selectedFolderId)?.name || "All Notes"
+          }
+        </h2>
+        <FilterOptions onFilterChange={handleFilterChange} />
+      </div>
+      
       {/* Notes list section */}
       <ScrollArea className="flex-1">
-        <div className="sticky top-0 bg-background z-10 px-1 pt-2 pb-1">
-          <h2 className="text-xs font-semibold uppercase text-muted-foreground px-2 mb-2">
-            {isSearching ? `Search Results: "${searchQuery}"` : folders.find(f => f.id === selectedFolderId)?.name || "All Notes"}
-          </h2>
-        </div>
-        
         {isLoading ? (
           renderNotesSkeleton()
-        ) : notes.length === 0 ? (
+        ) : notesToDisplay.length === 0 ? (
           <div className="px-4 py-8 text-center">
             <p className="text-muted-foreground text-sm mb-4">
               {isSearching ? "No notes match your search" : "No notes in this folder"}
@@ -223,8 +346,8 @@ export default function Sidebar({
             </Button>
           </div>
         ) : (
-          <ul className="space-y-1 px-1">
-            {notes.map((note) => (
+          <ul className="space-y-1 px-1 py-2">
+            {notesToDisplay.map((note) => (
               <li
                 key={note.id}
                 className={cn(
@@ -238,7 +361,7 @@ export default function Sidebar({
                     "font-medium text-sm",
                     selectedNoteId === note.id ? "text-primary" : "text-foreground"
                   )}>
-                    {note.title}
+                    {note.title || "Untitled Note"}
                   </h3>
                   <div className="flex items-center gap-1">
                     <span className="text-xs text-muted-foreground">
@@ -265,6 +388,14 @@ export default function Sidebar({
                 
                 <div className="flex items-center mt-2 text-xs text-muted-foreground">
                   <span>{new Date(note.updatedAt).toLocaleDateString()}</span>
+                  {(note as NoteWithTags).tags && (note as NoteWithTags).tags!.length > 0 && (
+                    <div className="flex items-center mx-2">
+                      <Tag size={10} className="mr-1" />
+                      <span className="text-xs">
+                        {(note as NoteWithTags).tags!.length}
+                      </span>
+                    </div>
+                  )}
                   <span className="ml-auto flex items-center text-status-saved">
                     <i className="fa fa-check text-xs mr-1"></i>
                     Saved
