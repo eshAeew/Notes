@@ -44,6 +44,10 @@
   --status-editing: 207 90% 54%;
   --status-error: 0 84% 60%;
   --status-warning: 36 100% 50%;
+  
+  /* Tag colors */
+  --tag-bg: 45 80% 90%;
+  --tag-fg: 45 100% 35%;
 }
 
 .dark {
@@ -207,5 +211,10 @@
 
   .status-warning {
     @apply text-[hsl(var(--status-warning))];
+  }
+  
+  /* Tag styling */
+  .tag-badge {
+    @apply bg-[hsl(var(--tag-bg))] text-[hsl(var(--tag-fg))];
   }
 }
