@@ -44,12 +44,6 @@
   --status-editing: 207 90% 54%;
   --status-error: 0 84% 60%;
   --status-warning: 36 100% 50%;
-  
-  /* Tag colors */
-  --tag-bg: 45 80% 90%;
-  --tag-fg: 45 100% 35%;
-  --tag-hover-bg: 45 80% 85%;
-  --tag-hover-fg: 45 100% 30%;
 }
 
 .dark {
@@ -74,12 +68,6 @@
   --destructive-foreground: 0 0% 98%;
   --ring: 240 4.9% 83.9%;
   --radius: 0.5rem;
-  
-  /* Tag colors - dark mode */
-  --tag-bg: 45 35% 20%;
-  --tag-fg: 45 80% 60%;
-  --tag-hover-bg: 45 35% 25%;
-  --tag-hover-fg: 45 80% 65%;
 
   --sidebar-background: 222 14% 15%;
   --sidebar-foreground: 0 0% 98%;
@@ -219,10 +207,5 @@
 
   .status-warning {
     @apply text-[hsl(var(--status-warning))];
-  }
-  
-  /* Tag styling */
-  .tag-badge {
-    @apply bg-[hsl(var(--tag-bg))] text-[hsl(var(--tag-fg))];
   }
 }

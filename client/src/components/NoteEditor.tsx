@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Check, AlertCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { debounce } from "@/lib/utils";
-import TagManager from "@/components/TagManager";
 
 interface NoteEditorProps {
   note: Note;
@@ -19,7 +18,6 @@ interface NoteEditorProps {
 function NoteEditorContent({ note, onSave, isSaving }: NoteEditorProps) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
-  const [tags, setTags] = useState<string[]>(note.tags || []);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
   
   // Initialize editor with content from note
@@ -69,15 +67,7 @@ function NoteEditorContent({ note, onSave, isSaving }: NoteEditorProps) {
     }
     
     setTitle(note.title);
-    setTags(note.tags || []);
-  }, [note.id, editor, note.tags]);
-  
-  // Handle tag changes
-  const handleTagsChange = (newTags: string[]) => {
-    setTags(newTags);
-    debouncedSave(note.id, { tags: newTags });
-    setSaveStatus("saving");
-  };
+  }, [note.id, editor]);
   
   // Sync with isSaving prop
   useEffect(() => {
@@ -104,15 +94,6 @@ function NoteEditorContent({ note, onSave, isSaving }: NoteEditorProps) {
           onChange={handleTitleChange}
           className="bg-transparent border-none w-full text-xl font-medium text-foreground focus-visible:ring-0 p-0 h-auto"
         />
-        
-        {/* Tags */}
-        <div className="mt-3">
-          <TagManager 
-            tags={tags} 
-            onTagsChange={handleTagsChange} 
-            className="mb-2"
-          />
-        </div>
         
         <div className="flex items-center mt-1 text-xs text-muted-foreground">
           <span>{formatLastEdited(note.updatedAt)}</span>
