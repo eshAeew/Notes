@@ -186,23 +186,50 @@
   .context-menu {
     @apply bg-background border border-border rounded-md shadow-lg overflow-hidden z-50;
     animation: contextMenuFadeIn 0.1s ease-out;
+    min-width: 220px;
   }
 
   .context-menu-item {
-    @apply flex items-center w-full px-3 py-1.5 text-sm text-left hover:bg-secondary transition-colors;
+    @apply flex items-center w-full px-3 py-2 text-sm text-left transition-colors cursor-pointer;
+  }
+
+  .context-menu-item:hover:not(:disabled) {
+    @apply bg-secondary/60;
+  }
+
+  .context-menu-item:disabled {
+    @apply opacity-50 cursor-not-allowed;
   }
 
   .context-menu-item-icon {
-    @apply mr-2 w-5 h-5 flex items-center justify-center text-muted-foreground;
+    @apply mr-3 w-4 h-4 flex items-center justify-center text-muted-foreground flex-shrink-0;
+  }
+
+  .context-menu-item-shortcut {
+    @apply ml-auto text-xs tracking-widest text-muted-foreground;
   }
 
   .context-menu-divider {
     @apply h-px bg-border my-1;
   }
 
+  .context-menu-section {
+    @apply pt-1 pb-1;
+  }
+
+  .context-menu-section-title {
+    @apply px-3 py-1.5 text-xs text-muted-foreground font-semibold;
+  }
+
   .context-submenu {
     @apply absolute left-full top-0 bg-background border border-border rounded-md shadow-lg overflow-hidden z-50;
     animation: contextMenuFadeIn 0.1s ease-out;
+    min-width: 180px;
+    margin-left: 2px;
+  }
+
+  .context-menu-spell-suggestion {
+    @apply font-medium;
   }
 
   @keyframes contextMenuFadeIn {
