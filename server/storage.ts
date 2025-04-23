@@ -176,12 +176,18 @@ export class MemStorage implements IStorage {
   async createNote(insertNote: InsertNote): Promise<Note> {
     const id = this.noteCurrentId++;
     const now = new Date();
+    
+    // Create the note object with proper null handling for optional fields
     const note: Note = { 
-      ...insertNote, 
       id,
+      title: insertNote.title,
+      folderId: insertNote.folderId,
+      content: insertNote.content || null,
+      tags: insertNote.tags || null,
       createdAt: now,
       updatedAt: now
     };
+    
     this.notes.set(id, note);
     return note;
   }
@@ -217,7 +223,11 @@ export class MemStorage implements IStorage {
 
   // Folders Methods
   async getFolders(): Promise<Folder[]> {
-    return Array.from(this.folders.values()).sort((a, b) => a.sortOrder - b.sortOrder);
+    return Array.from(this.folders.values()).sort((a, b) => {
+      const aSortOrder = a.sortOrder || 0;
+      const bSortOrder = b.sortOrder || 0;
+      return aSortOrder - bSortOrder;
+    });
   }
 
   async getFolder(id: number): Promise<Folder | undefined> {
@@ -226,7 +236,12 @@ export class MemStorage implements IStorage {
 
   async createFolder(insertFolder: InsertFolder): Promise<Folder> {
     const id = this.folderCurrentId++;
-    const folder: Folder = { ...insertFolder, id };
+    const folder: Folder = { 
+      ...insertFolder, 
+      id,
+      icon: insertFolder.icon || null,
+      sortOrder: insertFolder.sortOrder || null
+    };
     this.folders.set(id, folder);
     return folder;
   }

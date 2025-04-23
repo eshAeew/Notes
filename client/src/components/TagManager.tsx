@@ -136,7 +136,7 @@ export default function TagManager({
               key={tag}
               variant="secondary"
               className={cn(
-                "flex items-center gap-1 pl-2",
+                "flex items-center gap-1 pl-2 tag-badge",
                 !readOnly && "pr-1"
               )}
             >
