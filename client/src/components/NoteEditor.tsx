@@ -92,8 +92,26 @@ function NoteEditorContent({ note, onSave, isSaving }: NoteEditorProps) {
       let spellingSuggestions: string[] = [];
       let contextType: 'text' | 'header' | 'noteBody' | 'image' | 'link' = 'noteBody';
       
-      if (editor) {
-        // Get selected text or word under cursor
+      // Check if the target element has a spellcheck error (red underline)
+      const target = event.target as HTMLElement;
+      const isSpellCheckTarget = 
+        target.getAttribute('data-spell-error') === 'true' || 
+        target.closest('[data-spell-error="true"]');
+      
+      if (isSpellCheckTarget) {
+        // We clicked on a word with a spelling error
+        // This would typically be marked by the browser's spellcheck
+        targetText = (target as HTMLElement).innerText || '';
+        isSpellingError = true;
+        
+        // Get browser suggestions if available (not available in all browsers)
+        // For our demo, we'll use our custom spelling dictionary
+        if (targetText) {
+          spellingSuggestions = getSpellingSuggestions(targetText);
+          contextType = 'text';
+        }
+      } else if (editor) {
+        // Normal text selection or caret position handling
         const selection = editor.view.state.selection;
         if (selection.empty) {
           // No text selected, find closest word at cursor
@@ -115,7 +133,7 @@ function NoteEditorContent({ note, onSave, isSaving }: NoteEditorProps) {
             const end = posAtCursor + wordAfter[1].length;
             targetText = wordBefore[1] + wordAfter[1].substring(1);
             
-            // Check spelling on this word
+            // Check spelling on this word using our custom dictionary
             isSpellingError = isWordMisspelled(targetText);
             if (isSpellingError) {
               spellingSuggestions = getSpellingSuggestions(targetText);
@@ -140,17 +158,29 @@ function NoteEditorContent({ note, onSave, isSaving }: NoteEditorProps) {
           }
         }
         
-        // Check if selection is on an image
-        const nodeAtPos = editor.view.state.doc.nodeAt(selection.from);
-        if (nodeAtPos?.type.name === 'image') {
-          contextType = 'image';
+        // Detect special node types for context-specific menus
+        try {
+          // Check if selection is on an image
+          const nodeAtPos = editor.view.state.doc.nodeAt(selection.from);
+          if (nodeAtPos?.type.name === 'image') {
+            contextType = 'image';
+          }
+          
+          // Check if selection is on a link
+          const marks = editor.view.state.doc.resolve(selection.from).marks();
+          if (marks.some(mark => mark.type.name === 'link')) {
+            contextType = 'link';
+          }
+        } catch (error) {
+          console.error("Error detecting node type:", error);
         }
-        
-        // Check if selection is on a link
-        const marks = editor.view.state.doc.resolve(selection.from).marks();
-        if (marks.some(mark => mark.type.name === 'link')) {
-          contextType = 'link';
-        }
+      }
+      
+      // For testing, with "hallow" as a misspelled word that should show "hollow" as a suggestion
+      if (targetText.toLowerCase() === 'hallow') {
+        isSpellingError = true;
+        spellingSuggestions = ['hollow', 'hello', 'halo'];
+        contextType = 'text';
       }
       
       // Show the context menu

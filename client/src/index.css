@@ -185,8 +185,9 @@
   /* Context menu styles */
   .context-menu {
     @apply bg-background border border-border rounded-md shadow-lg overflow-hidden z-50;
-    animation: contextMenuFadeIn 0.1s ease-out;
+    animation: contextMenuFadeIn 0.15s ease-out;
     min-width: 220px;
+    transform-origin: top left;
   }
 
   /* Default context menu styling */
@@ -289,9 +290,10 @@
 
   .context-submenu {
     @apply absolute left-full top-0 border rounded-md shadow-lg overflow-hidden z-50;
-    animation: contextMenuFadeIn 0.1s ease-out;
+    animation: contextMenuFadeIn 0.15s ease-out;
     min-width: 180px;
     margin-left: 2px;
+    transform-origin: left top;
   }
 
   /* Spelling suggestions styling */

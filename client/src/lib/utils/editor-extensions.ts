@@ -7,6 +7,7 @@ import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import Placeholder from '@tiptap/extension-placeholder';
+import { SpellChecker } from './spellchecker-extension';
 
 export function getTipTapExtensions() {
   return [
@@ -71,5 +72,7 @@ export function getTipTapExtensions() {
       placeholder: 'Start writing...',
       emptyEditorClass: 'before:content-[attr(data-placeholder)] before:text-muted-foreground before:float-left before:pointer-events-none',
     }),
+    // Add our custom spell checker extension
+    SpellChecker,
   ];
 }
