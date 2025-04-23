@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Check, AlertCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { debounce } from "@/lib/utils";
-import { EditorContextMenu } from "@/components/editor/EditorContextMenu";
+import { useContextMenu } from "@/components/context-menu/ContextMenuProvider";
+import { isWordMisspelled, getSpellingSuggestions } from "@/lib/utils/spell-checker";
 
 interface NoteEditorProps {
   note: Note;
@@ -16,17 +17,13 @@ interface NoteEditorProps {
   isSaving: boolean;
 }
 
-interface ContextMenuPosition {
-  x: number;
-  y: number;
-}
-
 function NoteEditorContent({ note, onSave, isSaving }: NoteEditorProps) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
-  const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const { showContextMenu } = useContextMenu();
   
   // Initialize editor with content from note
   const editor = useTipTapEditor({
@@ -84,34 +81,128 @@ function NoteEditorContent({ note, onSave, isSaving }: NoteEditorProps) {
     }
   }, [isSaving]);
   
-  // Handle context menu (right-click)
-  const handleContextMenu = useCallback((event: MouseEvent) => {
+  // Handle editor context menu (right-click)
+  const handleEditorContextMenu = useCallback((event: MouseEvent) => {
     if (editorRef.current && editorRef.current.contains(event.target as Node)) {
       event.preventDefault();
-      setContextMenu({
+      
+      // Get the selected word to check spelling
+      let targetText = "";
+      let isSpellingError = false;
+      let spellingSuggestions: string[] = [];
+      let contextType: 'text' | 'header' | 'noteBody' | 'image' | 'link' = 'noteBody';
+      
+      if (editor) {
+        // Get selected text or word under cursor
+        const selection = editor.view.state.selection;
+        if (selection.empty) {
+          // No text selected, find closest word at cursor
+          const posAtCursor = selection.from;
+          const documentText = editor.view.state.doc.textBetween(
+            Math.max(0, posAtCursor - 50),  // Look up to 50 chars before cursor
+            Math.min(posAtCursor + 50, editor.view.state.doc.content.size), // and 50 after
+            ' ',  // Empty string between blocks
+            ' '   // Empty string at end of document
+          );
+          const from = Math.max(0, posAtCursor - 50);
+          
+          // Search for word boundaries around cursor
+          const wordBefore = documentText.substring(0, posAtCursor - from).match(/(\w+)$/);
+          const wordAfter = documentText.substring(posAtCursor - from).match(/^(\w+)/);
+          
+          if (wordBefore && wordAfter) {
+            const start = posAtCursor - wordBefore[1].length;
+            const end = posAtCursor + wordAfter[1].length;
+            targetText = wordBefore[1] + wordAfter[1].substring(1);
+            
+            // Check spelling on this word
+            isSpellingError = isWordMisspelled(targetText);
+            if (isSpellingError) {
+              spellingSuggestions = getSpellingSuggestions(targetText);
+              contextType = 'text';
+            }
+          }
+        } else {
+          // Text is selected
+          targetText = editor.view.state.doc.textBetween(
+            selection.from, 
+            selection.to,
+            ' '
+          );
+          
+          // If the selected text is a single word, check spelling
+          if (targetText.match(/^\w+$/) && targetText.length > 1) {
+            isSpellingError = isWordMisspelled(targetText);
+            if (isSpellingError) {
+              spellingSuggestions = getSpellingSuggestions(targetText);
+              contextType = 'text';
+            }
+          }
+        }
+        
+        // Check if selection is on an image
+        const nodeAtPos = editor.view.state.doc.nodeAt(selection.from);
+        if (nodeAtPos?.type.name === 'image') {
+          contextType = 'image';
+        }
+        
+        // Check if selection is on a link
+        const marks = editor.view.state.doc.resolve(selection.from).marks();
+        if (marks.some(mark => mark.type.name === 'link')) {
+          contextType = 'link';
+        }
+      }
+      
+      // Show the context menu
+      showContextMenu({
+        type: 'editor',
         x: event.clientX,
         y: event.clientY,
+        targetText,
+        isSpellingError,
+        spellingSuggestions,
+        contextType
       });
     }
-  }, []);
-
-  // Close context menu
-  const closeContextMenu = () => setContextMenu(null);
-
-  // Set up context menu event listener
+  }, [editor, showContextMenu]);
+  
+  // Handle title context menu
+  const handleTitleContextMenu = useCallback((event: MouseEvent) => {
+    if (titleRef.current && titleRef.current.contains(event.target as Node)) {
+      event.preventDefault();
+      
+      showContextMenu({
+        type: 'editor',
+        x: event.clientX,
+        y: event.clientY,
+        contextType: 'header'
+      });
+    }
+  }, [showContextMenu]);
+  
+  // Set up context menu event listeners
   useEffect(() => {
     const currentEditorRef = editorRef.current;
+    const currentTitleRef = titleRef.current;
     
     if (currentEditorRef) {
-      currentEditorRef.addEventListener('contextmenu', handleContextMenu);
+      currentEditorRef.addEventListener('contextmenu', handleEditorContextMenu);
+    }
+    
+    if (currentTitleRef) {
+      currentTitleRef.addEventListener('contextmenu', handleTitleContextMenu);
     }
     
     return () => {
       if (currentEditorRef) {
-        currentEditorRef.removeEventListener('contextmenu', handleContextMenu);
+        currentEditorRef.removeEventListener('contextmenu', handleEditorContextMenu);
+      }
+      
+      if (currentTitleRef) {
+        currentTitleRef.removeEventListener('contextmenu', handleTitleContextMenu);
       }
     };
-  }, [handleContextMenu]);
+  }, [handleEditorContextMenu, handleTitleContextMenu]);
   
   const formatLastEdited = (date: Date) => {
     try {
@@ -126,6 +217,7 @@ function NoteEditorContent({ note, onSave, isSaving }: NoteEditorProps) {
       {/* Note title */}
       <div className="border-b border-border px-6 py-4">
         <Input
+          ref={titleRef}
           type="text"
           value={title}
           onChange={handleTitleChange}
@@ -171,15 +263,6 @@ function NoteEditorContent({ note, onSave, isSaving }: NoteEditorProps) {
       >
         <EditorContent editor={editor} className="tiptap min-h-[300px]" />
       </div>
-      
-      {/* Context Menu */}
-      {contextMenu && (
-        <EditorContextMenu 
-          x={contextMenu.x} 
-          y={contextMenu.y} 
-          onClose={closeContextMenu} 
-        />
-      )}
     </main>
   );
 }

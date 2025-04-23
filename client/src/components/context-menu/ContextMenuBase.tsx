@@ -1,18 +1,25 @@
 import React, { useRef, useState, useEffect } from "react";
 
-export interface ContextMenuItem {
-  id: string;
-  label: string;
-  icon?: React.ReactNode;
-  shortcut?: string;
-  onClick?: () => void;
-  disabled?: boolean;
-  divider?: boolean;
-  section?: string;
-  submenu?: ContextMenuItem[];
-  variant?: 'default' | 'destructive' | 'success';
-  showInContexts?: string[];
-}
+export type ContextMenuItem = 
+  | {
+      id: string;
+      label: string;
+      icon?: React.ReactNode;
+      shortcut?: string;
+      onClick?: () => void;
+      disabled?: boolean;
+      divider?: false;
+      section?: string;
+      submenu?: ContextMenuItem[];
+      variant?: 'default' | 'destructive' | 'success';
+      showInContexts?: string[];
+      className?: string;
+    }
+  | {
+      id: string;
+      divider: true;
+      showInContexts?: string[];
+    };
 
 export interface ContextMenuSectionDefinition {
   id: string;
@@ -119,59 +126,75 @@ export const ContextMenuBase: React.FC<ContextMenuProps> = ({
                 ) : (
                   <div
                     className="relative"
-                    onMouseEnter={() => item.submenu && handleSubmenuHover(item.id)}
+                    onMouseEnter={() => 'submenu' in item && item.submenu && handleSubmenuHover(item.id)}
                     onMouseLeave={() => setActiveSubmenu(null)}
                   >
                     <button
-                      className={`context-menu-item ${item.variant === 'destructive' ? 'text-destructive' : ''} ${item.variant === 'success' ? 'text-[hsl(var(--status-saved))]' : ''}`}
+                      className={`context-menu-item ${
+                        'variant' in item && item.variant === 'destructive' ? 'text-destructive' : ''
+                      } ${
+                        'variant' in item && item.variant === 'success' ? 'text-[hsl(var(--status-saved))]' : ''
+                      } ${
+                        'className' in item ? item.className || '' : ''
+                      }`}
                       onClick={() => {
-                        if (!item.submenu && item.onClick && !item.disabled) {
+                        if ('onClick' in item && !('submenu' in item && item.submenu) && item.onClick && !item.disabled) {
                           item.onClick();
                           onClose();
                         }
                       }}
-                      disabled={item.disabled}
+                      disabled={'disabled' in item ? item.disabled : false}
                     >
-                      {item.icon && (
+                      {'icon' in item && item.icon && (
                         <span className="context-menu-item-icon">
                           {item.icon}
                         </span>
                       )}
-                      <span>{item.label}</span>
-                      {item.shortcut && (
+                      {'label' in item && <span>{item.label}</span>}
+                      {'shortcut' in item && item.shortcut && (
                         <span className="context-menu-item-shortcut">{item.shortcut}</span>
                       )}
-                      {item.submenu && (
+                      {'submenu' in item && item.submenu && (
                         <span className="ml-auto text-muted-foreground">▶</span>
                       )}
                     </button>
 
                     {/* Submenu */}
-                    {item.submenu && activeSubmenu === item.id && (
+                    {'submenu' in item && item.submenu && activeSubmenu === item.id && (
                       <div className="context-submenu">
                         <div className="py-1">
                           {item.submenu.map((subItem) => (
-                            <button
-                              key={subItem.id}
-                              className={`context-menu-item ${subItem.variant === 'destructive' ? 'text-destructive' : ''} ${subItem.variant === 'success' ? 'text-[hsl(var(--status-saved))]' : ''}`}
-                              onClick={() => {
-                                if (subItem.onClick && !subItem.disabled) {
-                                  subItem.onClick();
-                                  onClose();
-                                }
-                              }}
-                              disabled={subItem.disabled}
-                            >
-                              {subItem.icon && (
-                                <span className="context-menu-item-icon">
-                                  {subItem.icon}
-                                </span>
-                              )}
-                              <span>{subItem.label}</span>
-                              {subItem.shortcut && (
-                                <span className="context-menu-item-shortcut">{subItem.shortcut}</span>
-                              )}
-                            </button>
+                            'divider' in subItem && subItem.divider ? (
+                              <div key={subItem.id} className="context-menu-divider" />
+                            ) : (
+                              <button
+                                key={subItem.id}
+                                className={`context-menu-item ${
+                                  'variant' in subItem && subItem.variant === 'destructive' ? 'text-destructive' : ''
+                                } ${
+                                  'variant' in subItem && subItem.variant === 'success' ? 'text-[hsl(var(--status-saved))]' : ''
+                                } ${
+                                  'className' in subItem ? subItem.className || '' : ''
+                                }`}
+                                onClick={() => {
+                                  if ('onClick' in subItem && subItem.onClick && !('disabled' in subItem && subItem.disabled)) {
+                                    subItem.onClick();
+                                    onClose();
+                                  }
+                                }}
+                                disabled={'disabled' in subItem ? subItem.disabled : false}
+                              >
+                                {'icon' in subItem && subItem.icon && (
+                                  <span className="context-menu-item-icon">
+                                    {subItem.icon}
+                                  </span>
+                                )}
+                                {'label' in subItem && <span>{subItem.label}</span>}
+                                {'shortcut' in subItem && subItem.shortcut && (
+                                  <span className="context-menu-item-shortcut">{subItem.shortcut}</span>
+                                )}
+                              </button>
+                            )
                           ))}
                         </div>
                       </div>
