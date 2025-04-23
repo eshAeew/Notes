@@ -336,7 +336,7 @@ export const EditorContextMenu = ({ x, y, onClose }: ContextMenuProps) => {
     <>
       <div
         ref={menuRef}
-        className="absolute bg-background border border-border rounded-md shadow-lg overflow-hidden z-50"
+        className="absolute context-menu"
         style={{
           left: `${adjustedX}px`,
           top: `${adjustedY}px`,
@@ -346,7 +346,7 @@ export const EditorContextMenu = ({ x, y, onClose }: ContextMenuProps) => {
           {menuItems.map((item, index) => (
             <div key={index}>
               {item.divider ? (
-                <div className="h-px bg-border my-1" />
+                <div className="context-menu-divider" />
               ) : (
                 <div
                   className="relative"
@@ -354,10 +354,10 @@ export const EditorContextMenu = ({ x, y, onClose }: ContextMenuProps) => {
                   onMouseLeave={() => setActiveSubmenu(null)}
                 >
                   <button
-                    className="flex items-center w-full px-3 py-1.5 text-sm text-left hover:bg-secondary"
+                    className="context-menu-item"
                     onClick={item.submenu ? undefined : item.onClick}
                   >
-                    <span className="mr-2 w-5 h-5 flex items-center justify-center text-muted-foreground">
+                    <span className="context-menu-item-icon">
                       {item.icon}
                     </span>
                     <span>{item.label}</span>
@@ -369,17 +369,17 @@ export const EditorContextMenu = ({ x, y, onClose }: ContextMenuProps) => {
                   {/* Submenu */}
                   {item.submenu && activeSubmenu === item.label && (
                     <div
-                      className="absolute left-full top-0 bg-background border border-border rounded-md shadow-lg overflow-hidden z-50 min-w-48"
+                      className="context-submenu min-w-48"
                       style={{ marginLeft: '2px' }}
                     >
                       <div className="py-1">
                         {item.submenu.map((subItem, subIndex) => (
                           <button
                             key={subIndex}
-                            className="flex items-center w-full px-3 py-1.5 text-sm text-left hover:bg-secondary"
+                            className="context-menu-item"
                             onClick={subItem.onClick}
                           >
-                            <span className="mr-2 w-5 h-5 flex items-center justify-center text-muted-foreground">
+                            <span className="context-menu-item-icon">
                               {subItem.icon}
                             </span>
                             <span>{subItem.label}</span>

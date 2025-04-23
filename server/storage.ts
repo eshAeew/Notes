@@ -178,6 +178,7 @@ export class MemStorage implements IStorage {
     const note: Note = { 
       ...insertNote, 
       id,
+      content: insertNote.content || null,
       createdAt: now,
       updatedAt: now
     };
@@ -208,14 +209,18 @@ export class MemStorage implements IStorage {
     return Array.from(this.notes.values())
       .filter(note => 
         note.title.toLowerCase().includes(lowerQuery) || 
-        note.content.toLowerCase().includes(lowerQuery)
+        (note.content && note.content.toLowerCase().includes(lowerQuery))
       )
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
 
   // Folders Methods
   async getFolders(): Promise<Folder[]> {
-    return Array.from(this.folders.values()).sort((a, b) => a.sortOrder - b.sortOrder);
+    return Array.from(this.folders.values()).sort((a, b) => {
+      const sortA = a.sortOrder || 0;
+      const sortB = b.sortOrder || 0;
+      return sortA - sortB;
+    });
   }
 
   async getFolder(id: number): Promise<Folder | undefined> {
@@ -224,7 +229,12 @@ export class MemStorage implements IStorage {
 
   async createFolder(insertFolder: InsertFolder): Promise<Folder> {
     const id = this.folderCurrentId++;
-    const folder: Folder = { ...insertFolder, id };
+    const folder: Folder = { 
+      ...insertFolder, 
+      id,
+      icon: insertFolder.icon || null,
+      sortOrder: insertFolder.sortOrder || null
+    };
     this.folders.set(id, folder);
     return folder;
   }
